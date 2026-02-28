@@ -5,6 +5,7 @@ select * from Staff
 select * from Services
 select * from Medicine
 select * from TimeSlot
+select * from Specialties
 
 -- lệnh tui xoá data để tui test 
 DELETE FROM PaymentInstallments WHERE bill_id IN (SELECT bill_id FROM Bills);
@@ -135,6 +136,26 @@ CREATE TABLE [dbo].[ChatMessages] (
     FOREIGN KEY ([user_id]) REFERENCES [dbo].[users] ([user_id])
 );
 
+-- Bảng chuyên khoa (Specialties) - đặt trước Doctors vì Doctors có FK tới đây
+CREATE TABLE [dbo].[Specialties] (
+    [specialty_id]   INT            IDENTITY (1, 1) NOT NULL,
+    [specialty_name] NVARCHAR (255) NOT NULL,
+    [description]    NVARCHAR (MAX) NULL,
+    [created_at]     DATETIME2 (7)  DEFAULT (getdate()) NULL,
+    PRIMARY KEY CLUSTERED ([specialty_id] ASC)
+);
+
+-- Dữ liệu mẫu cho Specialties (chuyên khoa nha khoa)
+INSERT INTO [dbo].[Specialties] ([specialty_name], [description], [created_at]) VALUES
+(N'Nha khoa tổng quát', N'Khám và điều trị các bệnh lý răng miệng cơ bản: sâu răng, viêm nướu, vệ sinh răng miệng', GETDATE()),
+(N'Chỉnh nha - Niềng răng', N'Điều chỉnh răng lệch lạc, khớp cắn bằng mắc cài hoặc khay trong suốt (Invisalign)', GETDATE()),
+(N'Phẫu thuật hàm mặt', N'Nhổ răng khôn, phẫu thuật chỉnh hình xương hàm, điều trị chấn thương vùng mặt', GETDATE()),
+(N'Chuyên khoa răng miệng', N'Chẩn đoán và điều trị toàn diện các bệnh lý răng miệng phức tạp', GETDATE()),
+(N'Nha khoa thẩm mỹ', N'Tẩy trắng răng, bọc răng sứ, veneer, phục hồi thẩm mỹ nụ cười', GETDATE()),
+(N'Nội nha - Điều trị tủy', N'Điều trị viêm tủy, chữa tủy răng, bảo tồn răng bị tổn thương', GETDATE()),
+(N'Nha khoa trẻ em', N'Chăm sóc răng miệng cho trẻ em, phòng ngừa sâu răng, hướng dẫn vệ sinh', GETDATE()),
+(N'Implant nha khoa', N'Trồng răng implant, phục hồi răng mất bằng trụ titanium', GETDATE());
+
 CREATE TABLE [dbo].[Doctors] (
     [doctor_id]      BIGINT         IDENTITY (1, 1) NOT NULL,
     [user_id]        BIGINT         NOT NULL,
@@ -143,7 +164,8 @@ CREATE TABLE [dbo].[Doctors] (
     [address]        NVARCHAR (MAX) NULL,
     [date_of_birth]  DATE           NULL,
     [gender]         NVARCHAR (10)  NULL,
-    [specialty]      NVARCHAR (255) NOT NULL,
+    [specialty]      NVARCHAR (255) NULL,
+    [specialty_id]   INT            NULL,
     [license_number] NVARCHAR (50)  NOT NULL,
     [created_at]     DATETIME       DEFAULT (getdate()) NULL,
     [status]         NVARCHAR (50)  DEFAULT (N'active') NOT NULL,
@@ -151,14 +173,16 @@ CREATE TABLE [dbo].[Doctors] (
     PRIMARY KEY CLUSTERED ([doctor_id] ASC),
     CHECK ([gender]=N'other' OR [gender]=N'female' OR [gender]=N'male'),
     UNIQUE NONCLUSTERED ([license_number] ASC),
-    UNIQUE NONCLUSTERED ([user_id] ASC)
+    UNIQUE NONCLUSTERED ([user_id] ASC),
+    CONSTRAINT [FK_Doctors_Specialties] FOREIGN KEY ([specialty_id]) REFERENCES [dbo].[Specialties] ([specialty_id])
 );
 
-insert into doctors ( [user_id] , [full_name] , [phone] , [address] , [date_of_birth] , [gender] , [specialty] , [license_number] , [created_at] , [status] , [avatar] ) 
-values ( /* user_id */ 68 ,/* full_name */ N'Nguyen Do Phuc Toan' ,/* phone */ N'0123456789' ,/* address */ N'123 Đường ABC, Quận 1, TP.HCM' ,/* date_of_birth */ '1985-06-15' ,/* gender */ N'male' ,/* specialty */ N'Chuyên khoa răng miệng ' ,/* license_number */ N'BACSITOAN001' ,/* created_at */ '2025-05-24 03:25:49.890' ,/* status */ N'active' ,/* avatar */ null  ), 
-( /* user_id */ 2007 ,/* full_name */ N'BS. Nguyễn Văn An' ,/* phone */ N'0901234567' ,/* address */ N'123 Đường Nguyễn Trãi, Q1, HCM' ,/* date_of_birth */ '1980-01-15' ,/* gender */ N'male' ,/* specialty */ N'Nha khoa tổng quát' ,/* license_number */ N'NK001' ,/* created_at */ '2025-06-10 17:09:53.247' ,/* status */ N'active' ,/* avatar */ null  ), 
-( /* user_id */ 2008 ,/* full_name */ N'BS. Trần Thị Bích' ,/* phone */ N'0912345678' ,/* address */ N'456 Đường Lê Văn Sỹ, Q3, HCM' ,/* date_of_birth */ '1985-05-20' ,/* gender */ N'female' ,/* specialty */ N'Chỉnh nha - Niềng răng' ,/* license_number */ N'NK002' ,/* created_at */ '2025-06-10 17:09:53.247' ,/* status */ N'active' ,/* avatar */ null  ), 
-( /* user_id */ 2009 ,/* full_name */ N'BS. Lê Minh Cường' ,/* phone */ N'0923456789' ,/* address */ N'789 Đường Võ Văn Tần, Q3, HCM' ,/* date_of_birth */ '1978-12-10' ,/* gender */ N'male' ,/* specialty */ N'Phẫu thuật hàm mặt' ,/* license_number */ N'NK003' ,/* created_at */ '2025-06-10 17:09:53.247' ,/* status */ N'active' ,/* avatar */ null  );
+-- 1=Nha khoa tổng quát, 2=Chỉnh nha, 3=Phẫu thuật hàm mặt, 4=Chuyên khoa răng miệng
+insert into doctors ( [user_id] , [full_name] , [phone] , [address] , [date_of_birth] , [gender] , [specialty] , [specialty_id] , [license_number] , [created_at] , [status] , [avatar] ) 
+values ( /* user_id */ 68 ,/* full_name */ N'Nguyen Do Phuc Toan' ,/* phone */ N'0123456789' ,/* address */ N'123 Đường ABC, Quận 1, TP.HCM' ,/* date_of_birth */ '1985-06-15' ,/* gender */ N'male' ,/* specialty */ N'Chuyên khoa răng miệng' ,/* specialty_id */ 4 ,/* license_number */ N'BACSITOAN001' ,/* created_at */ '2025-05-24 03:25:49.890' ,/* status */ N'active' ,/* avatar */ null  ), 
+( /* user_id */ 2007 ,/* full_name */ N'BS. Nguyễn Văn An' ,/* phone */ N'0901234567' ,/* address */ N'123 Đường Nguyễn Trãi, Q1, HCM' ,/* date_of_birth */ '1980-01-15' ,/* gender */ N'male' ,/* specialty */ N'Nha khoa tổng quát' ,/* specialty_id */ 1 ,/* license_number */ N'NK001' ,/* created_at */ '2025-06-10 17:09:53.247' ,/* status */ N'active' ,/* avatar */ null  ), 
+( /* user_id */ 2008 ,/* full_name */ N'BS. Trần Thị Bích' ,/* phone */ N'0912345678' ,/* address */ N'456 Đường Lê Văn Sỹ, Q3, HCM' ,/* date_of_birth */ '1985-05-20' ,/* gender */ N'female' ,/* specialty */ N'Chỉnh nha - Niềng răng' ,/* specialty_id */ 2 ,/* license_number */ N'NK002' ,/* created_at */ '2025-06-10 17:09:53.247' ,/* status */ N'active' ,/* avatar */ null  ), 
+( /* user_id */ 2009 ,/* full_name */ N'BS. Lê Minh Cường' ,/* phone */ N'0923456789' ,/* address */ N'789 Đường Võ Văn Tần, Q3, HCM' ,/* date_of_birth */ '1978-12-10' ,/* gender */ N'male' ,/* specialty */ N'Phẫu thuật hàm mặt' ,/* specialty_id */ 3 ,/* license_number */ N'NK003' ,/* created_at */ '2025-06-10 17:09:53.247' ,/* status */ N'active' ,/* avatar */ null  );
 
 CREATE TABLE [dbo].[DoctorSchedule] (
     [schedule_id] INT           IDENTITY (1, 1) NOT NULL,
@@ -712,3 +736,8 @@ INSERT INTO [dbo].[Relatives] (user_id, full_name, phone, date_of_birth, gender,
 (2, N'Nguyễn Văn Bố', N'0909111222', '1965-05-10', N'male', N'Cha'),
 (4, N'Trần Thị Mẹ', N'0918222333', '1970-08-20', N'female', N'Mẹ'),
 (5, N'Phạm Văn Anh', N'0947333444', '1995-01-15', N'male', N'Anh trai');
+
+-- ========== MIGRATION: Nếu DB đã có bảng Doctors chưa có cột specialty_id, chạy đoạn dưới ==========
+-- ALTER TABLE [dbo].[Doctors] ADD [specialty_id] INT NULL;
+-- ALTER TABLE [dbo].[Doctors] ADD CONSTRAINT [FK_Doctors_Specialties] FOREIGN KEY ([specialty_id]) REFERENCES [dbo].[Specialties] ([specialty_id]);
+-- UPDATE d SET d.specialty_id = s.specialty_id FROM [dbo].[Doctors] d INNER JOIN [dbo].[Specialties] s ON LTRIM(RTRIM(d.specialty)) = s.specialty_name;
